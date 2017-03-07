@@ -1,0 +1,251 @@
+# -*- coding: utf-8 -*-
+"""
+@date: 2017/03/07
+
+@author: peeters
+
+@description:
+This file contains the definition and methods of the class pyjama 1.0.
+
+pyJAMA (python Json Audio Music Annotation) is a json format for storing annotations.
+Its main differences with other proposals is that a pyjama file describes the whole collection of (audio) files not only a single file.
+A pyjama file is a dictionay with three main keys:
+- 'schemaversion': gives the version of the pyjama schema used (currently 1.0)
+- 'collection' (which contains a list of entries, each describing a single (audio file)
+	- An entry is itself a dictionary which keys are the various descriptions
+		- A single description is itself a list (it is therefore possible to have various values for a single description, such as various segments or multi-label)
+			Each element of this list is a SDDE (Shared Description Dictionary Atiom)
+			A SDDA has the keys
+				value, confidence, time, duration, startFreq, endFreq
+				Not all this keys are mandatory.
+			To store a global (not time specific) description: simply use 'value' (use 'confidence' if you know how reliable is the 'value')
+			To store a marker (with null duration, such as beat positions) description: simply use 'value' and 'time'
+			To store a segment (such as speech segments in a file): simply use 'value', 'time' and 'duration'
+			The keys 'startFreq' and 'endFreq' are used for Audiosculpt musicdescription xml compatibility.
+			
+- 'descriptiondefinition' (which provides the definitions of the description provided for each entry)
+	- Each description is defined by a dictionary with the following keys
+		- 'typeExtent': describes the temporal extent of the value {'global', 'marker', 'segment'}
+		- 'typeContent': describes the format of the value {'text', 'numeric'}
+		- 'typeConstraint': describes whether a constraint has to be applied to validate a value  {'free', 'filePath, 'valueInDictionary'}
+		- 'dictionary': contains the list of possible values (when 'valueInDictionary' is used)
+		The following 'keys' are used for GUI purposes
+		- 'isTable'
+		- 'isEditable'
+		- 'isFilter'
+"""
+
+import sys
+import os
+import json
+import glob
+import pprint as pp
+import ipdb
+import copy
+
+
+class C_pyjama():
+	data 			= {}
+	currentPosition 	= -1
+	notValidAction 	= ''
+	
+	# ===============================================
+	def __init__(self, notValidAction='addToDictionary'):
+		self.data['schemaversion'] 	= 1.0
+		self.data['collection'] 	= {'descriptiondefinition':{}, 'entry':[]}
+		if notValidAction in ['addToDictionary', 'filterOut', 'reject']:
+			self.notValidAction = notValidAction
+		else:
+			raise Exception('unknown type "%s" for notValidAction' % (notValidAction))
+			
+
+	# ===============================================
+	def __setattr__(self, attrName, val):
+		if hasattr(self, attrName):		self.__dict__[attrName] = val
+		else:						raise Exception("self.%s note part of the fields" % attrName)
+
+
+	# ===============================================
+	def M_addDefinition(self, name, typeConstraint='free', typeContent='text', typeExtent='global', generator={}, dictionary=[], isTable=True, isEditable=True, isFilter=True):
+		
+		self.data['collection']['descriptiondefinition'][name] = {}
+			
+		if typeContent in ['text', 'numeric']:
+			self.data['collection']['descriptiondefinition'][name]['typeContent'] = typeContent
+		else:
+			raise Exception('unknown type "%s" for typeContent' % (typeContent))
+
+		if typeExtent in ['global', 'segment', 'marker']:
+			self.data['collection']['descriptiondefinition'][name]['typeExtent'] = typeExtent
+		else:
+			raise Exception('unknown type "%s" for typeExtent' % (typeExtent))
+			
+		if typeConstraint in ['filePath', 'free', 'valueInDictionary']:
+			self.data['collection']['descriptiondefinition'][name]['typeConstraint'] = typeConstraint
+		else:
+			raise Exception('unknown type "%s" for typeConstraint' % (typeConstraint))
+			
+		self.data['collection']['descriptiondefinition'][name]['dictionary']	= copy.copy(dictionary)
+		self.data['collection']['descriptiondefinition'][name]['isTable'] 	= isTable 
+		self.data['collection']['descriptiondefinition'][name]['isEditable']	= isEditable 
+		self.data['collection']['descriptiondefinition'][name]['isFilter'] 	= isFilter 
+		if len(generator): 	self.data['collection']['descriptiondefinition'][name]['generator'] 	= generator
+
+
+	# ===============================================
+	def M_addEntry(self):
+		entry = {}
+		for name in self.data['collection']['descriptiondefinition'].keys():
+			entry[name] = []
+		self.data['collection']['entry'].append(entry)
+		self.currentPosition += 1
+
+
+	# ===============================================
+	def M_updateEntry(self, name, value='', time=-1, duration=-1, confidence=-1, startFreq=-1, endFreq=-1):
+	
+		if name in self.data['collection']['descriptiondefinition'].keys():
+			entry = {}
+			is_ok = False
+			if type(value)==float: 
+				is_ok=True
+			else: 
+				if len(value): 
+					is_ok=True
+					
+			if is_ok:
+				# --- BEGIN: Check validity of the entry
+				isValid = False				
+				currentTypeContent 	= self.data['collection']['descriptiondefinition'][name]['typeContent']
+				currentTypeConstraint 	= self.data['collection']['descriptiondefinition'][name]['typeConstraint']
+				currentTypeExtent 		= self.data['collection']['descriptiondefinition'][name]['typeExtent']
+				if currentTypeConstraint=='free':		
+					isValid = True
+				elif currentTypeConstraint=='filePath':
+					if os.path.isfile(value):
+						isValid = True
+				elif currentTypeConstraint=='valueInDictionary':
+					if currentTypeContent=='text':
+						if value in self.data['collection']['descriptiondefinition'][name]['dictionary']:
+							isValid = True
+						else:
+							if self.notValidAction=='addToDictionary':	
+								print 'addToDictionary "%s" to "%s"' % (value, name)
+								self.data['collection']['descriptiondefinition'][name]['dictionary'].append(value)
+								isValid = True
+					elif currentTypeContent=='numeric':
+						minValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][0]
+						maxValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][1]
+						if minValue <= value & value <= maxValue:
+							isValid = True
+						else:
+							if self.notValidAction=='addToDictionary':
+								if value<minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][0] = value
+								if value>minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][1] = value
+				if isValid:
+					entry['value'] = value
+					if time>-1: 		entry['time'] 		= time
+					if duration>-1: 	entry['duration'] 		= duration
+					if confidence>-1: 	entry['confidence'] 	= confidence
+					if startFreq>-1: 	entry['startFreq']		= startFreq
+					if endFreq>-1: 	entry['endFreq'] 		= endFreq					
+					self.data['collection']['entry'][self.currentPosition][name].append(entry)					
+				else:
+					if self.notValidAction=='filterOut':
+						print 'filterOut "%s" of "%s"' % (value, name)
+					else:
+						raise Exception('value "%s" not valid for entry "%s" -> add first in description definition' % (value, name))
+				# --- END: Check validity of the entry
+					
+				
+		else:
+			raise Exception('name "%s" not is descriptiondefinition -> add first in description definition' % (name))
+
+
+	# ===============================================
+	def M_check(self):
+		key_l = self.data['collection']['descriptiondefinition'].keys()
+
+		nbEntry = len(self.data['collection']['entry'])
+		for numEntry in range(0, nbEntry):
+			for key in key_l:
+				notOK = False
+				if key not in self.data['collection']['entry'][numEntry].keys():
+					self.data['collection']['entry'][numEntry][key]=[]
+					self.data['collection']['entry'][numEntry][key].append({'value': ''})
+				elif len(self.data['collection']['entry'][numEntry][key])==0:
+					self.data['collection']['entry'][numEntry][key]=[]
+					self.data['collection']['entry'][numEntry][key].append({'value': ''})
+				elif 'value' not in self.data['collection']['entry'][numEntry][key][0].keys():
+					self.data['collection']['entry'][numEntry][key]=[]
+					self.data['collection']['entry'][numEntry][key].append({'value': ''})
+					
+		return
+		
+		
+	# ===============================================
+	def M_print(self):
+		pp.pprint(self.data)
+
+
+	# ===============================================
+	def M_save(self, fileName):
+		print "writting pyjama file: %s" % (fileName)
+		with open(fileName, 'w') as f: json.dump(self.data, f, encoding='utf-8', indent=4)
+
+
+# ===============================================
+def F_readCsv2(annotFile):
+	"""
+	annotTime_l, annotLabel_l = F_readCsv2(annotFile)
+	"""
+	
+	text_file 	= open(annotFile, 'r')
+	lines 		= text_file.readlines()
+	text_file.close()
+	annotTime_l = []
+	annotLabel_l =[]
+	for line in lines:
+		line	= line.strip( '\n' )
+		a 	= line.split('\t')
+		annotTime_l.append( float(a[0]) )
+		annotLabel_l.append(a[1])
+	return annotTime_l, annotLabel_l
+
+
+# ==========================	
+def main(argv):
+	"""
+	Example of usage for storing structural segments corresponding to the SALAMI collection
+	"""
+	
+	audioFile_l = glob.glob('/Users/peeters/_work/_sound/_collection/local_structure/2014_Salami/_audio/*/*.mp3')
+
+	doInit = True
+	for audioFile in audioFile_l:
+		if doInit:
+			myPyjama = C_pyjama(notValidAction='addToDictionary')
+			myPyjama.M_addDefinition(name='filepath', typeConstraint='filePath')
+			myPyjama.M_addDefinition(name='structtype', typeExtent='segment', typeConstraint='valueInDictionary', generator={'name':'', 'version':'', 'date':''}, dictionary=['Silence', 'A', 'B', 'C', 'D', 'E', 'F', 'I', 'V', 'End'] )
+			doInit = False
+
+		annotFile 	= audioFile.replace('/_audio/', '/salami-data-public-master/annotations/').replace('audio.mp3', 'parsed/textfile1_uppercase.txt')
+		if os.path.isfile(annotFile):
+			myPyjama.M_addEntry()
+			myPyjama.M_updateEntry('filepath', audioFile)
+
+			annotTime_l, annotLabel_l 	= F_readCsv2(annotFile)
+			for num in range(0,len(annotTime_l)-1):
+				myPyjama.M_updateEntry('structtype', annotLabel_l[num], annotTime_l[num], annotTime_l[num+1]-annotTime_l[num])
+	
+	# --- collect all the labels that have been used all over the files
+	myPyjama.M_check()
+	myPyjama.M_save('./dataSet_SALAMI.json')
+	return
+
+
+	
+# ==========================	
+if __name__ == '__main__':
+	main(sys.argv[1:])
+	
