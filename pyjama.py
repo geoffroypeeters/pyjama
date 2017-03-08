@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-@date: 2017/03/07
+@date: 2017/03/08
 
 @author: peeters
 
@@ -33,6 +33,11 @@ A pyjama file is a dictionay with three main keys:
 		- 'isTable'
 		- 'isEditable'
 		- 'isFilter'
+		
+2017/03/08:	Added breakpoint support
+			Format is 	
+				time(nbTime): is a vecor
+				value((nbDIm,nbTime)): is a matrix
 """
 
 import sys
@@ -42,7 +47,7 @@ import glob
 import pprint as pp
 import ipdb
 import copy
-
+import numpy as np
 
 class C_pyjama():
 	data 			= {}
@@ -51,7 +56,7 @@ class C_pyjama():
 	
 	# ===============================================
 	def __init__(self, notValidAction='addToDictionary'):
-		self.data['schemaversion'] 	= 1.0
+		self.data['schemaversion'] 	= 1.1
 		self.data['collection'] 	= {'descriptiondefinition':{}, 'entry':[]}
 		if notValidAction in ['addToDictionary', 'filterOut', 'reject']:
 			self.notValidAction = notValidAction
@@ -75,7 +80,7 @@ class C_pyjama():
 		else:
 			raise Exception('unknown type "%s" for typeContent' % (typeContent))
 
-		if typeExtent in ['global', 'segment', 'marker']:
+		if typeExtent in ['global', 'segment', 'marker', 'breakpoint']:
 			self.data['collection']['descriptiondefinition'][name]['typeExtent'] = typeExtent
 		else:
 			raise Exception('unknown type "%s" for typeExtent' % (typeExtent))
@@ -119,43 +124,60 @@ class C_pyjama():
 				currentTypeContent 	= self.data['collection']['descriptiondefinition'][name]['typeContent']
 				currentTypeConstraint 	= self.data['collection']['descriptiondefinition'][name]['typeConstraint']
 				currentTypeExtent 		= self.data['collection']['descriptiondefinition'][name]['typeExtent']
-				if currentTypeConstraint=='free':		
-					isValid = True
-				elif currentTypeConstraint=='filePath':
-					if os.path.isfile(value):
-						isValid = True
-				elif currentTypeConstraint=='valueInDictionary':
-					if currentTypeContent=='text':
-						if value in self.data['collection']['descriptiondefinition'][name]['dictionary']:
-							isValid = True
-						else:
-							if self.notValidAction=='addToDictionary':	
-								print 'addToDictionary "%s" to "%s"' % (value, name)
-								self.data['collection']['descriptiondefinition'][name]['dictionary'].append(value)
-								isValid = True
-					elif currentTypeContent=='numeric':
-						minValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][0]
-						maxValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][1]
-						if minValue <= value & value <= maxValue:
-							isValid = True
-						else:
-							if self.notValidAction=='addToDictionary':
-								if value<minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][0] = value
-								if value>minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][1] = value
-				if isValid:
+				
+				if currentTypeExtent=='breakpoint':
+					if time.ndim>1: raise Exception('time must be a vector not a matrix')
+					if value.ndim!=2: raise Exception('value must be a matrix not a vector')
+					L = time.shape
+					if value.shape[1]!=time.shape[0]: raise Exception('number of rows of value %d must be equal to number of times %d' % (value.shape, time.shape[0]))
+					# --- convert numpy array to list
+					# --- Note: convert back to numpy: np.array( np.zeros((3,10)).tolist() )
+					time = time.tolist()					
+					value = value.tolist()
 					entry['value'] = value
-					if time>-1: 		entry['time'] 		= time
-					if duration>-1: 	entry['duration'] 		= duration
-					if confidence>-1: 	entry['confidence'] 	= confidence
-					if startFreq>-1: 	entry['startFreq']		= startFreq
-					if endFreq>-1: 	entry['endFreq'] 		= endFreq					
-					self.data['collection']['entry'][self.currentPosition][name].append(entry)					
+					entry['time'] = time
+					self.data['collection']['entry'][self.currentPosition][name].append(entry)
+					
 				else:
-					if self.notValidAction=='filterOut':
-						print 'filterOut "%s" of "%s"' % (value, name)
+					if currentTypeConstraint=='free':		
+						isValid = True
+					elif currentTypeConstraint=='filePath':
+						if os.path.isfile(value):
+							isValid = True
+					elif currentTypeConstraint=='valueInDictionary':
+						if currentTypeContent=='text':
+							if value in self.data['collection']['descriptiondefinition'][name]['dictionary']:
+								isValid = True
+							else:
+								if self.notValidAction=='addToDictionary':	
+									print 'addToDictionary "%s" to "%s"' % (value, name)
+									self.data['collection']['descriptiondefinition'][name]['dictionary'].append(value)
+									isValid = True
+						elif currentTypeContent=='numeric':
+							minValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][0]
+							maxValue = self.data['collection']['descriptiondefinition'][name]['dictionary'][1]
+							if minValue <= value & value <= maxValue:
+								isValid = True
+							else:
+								if self.notValidAction=='addToDictionary':
+									if value<minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][0] = value
+									if value>minValue: self.data['collection']['descriptiondefinition'][name]['dictionary'][1] = value
+										
+						
+					if isValid:
+						entry['value'] = value
+						if time>-1: 		entry['time'] 		= time
+						if duration>-1: 	entry['duration'] 		= duration
+						if confidence>-1: 	entry['confidence'] 	= confidence
+						if startFreq>-1: 	entry['startFreq']		= startFreq
+						if endFreq>-1: 	entry['endFreq'] 		= endFreq					
+						self.data['collection']['entry'][self.currentPosition][name].append(entry)					
 					else:
-						raise Exception('value "%s" not valid for entry "%s" -> add first in description definition' % (value, name))
-				# --- END: Check validity of the entry
+						if self.notValidAction=='filterOut':
+							print 'filterOut "%s" of "%s"' % (value, name)
+						else:
+							raise Exception('value "%s" not valid for entry "%s" -> add first in description definition' % (value, name))
+					# --- END: Check validity of the entry
 					
 				
 		else:
@@ -244,8 +266,20 @@ def main(argv):
 	return
 
 
+# ==========================
+def test(argv):
+	import numpy as np
+	my = C_pyjama()
+	my.M_addDefinition(name='f0',typeExtent='breakpoint')
+	my.M_addEntry()
+	my.M_updateEntry('f0', np.zeros((1,10)), np.zeros(10))
+	my.M_save('test.pyjama')
+	
+	with open('test.pyjama') as f: my=json.load(f)
+	np.array(my['collection']['entry'][0]['f0'][0]['time'])
+	np.array(my['collection']['entry'][0]['f0'][0]['value'])
+	ipdb.set_trace()
 	
 # ==========================	
 if __name__ == '__main__':
 	main(sys.argv[1:])
-	
