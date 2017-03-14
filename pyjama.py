@@ -33,11 +33,20 @@ A pyjama file is a dictionay with three main keys:
 		- 'isTable'
 		- 'isEditable'
 		- 'isFilter'
-		
+
+version 1.1		
 2017/03/08:	Added breakpoint support
 			Format is 	
 				time(nbTime): is a vecor
 				value((nbDIm,nbTime)): is a matrix
+				
+version 1.2				
+2017/03/14: 	Following discussion with Diemo Schwarz and Benjamin Matuszewski:
+			1) Update breakpoint format -> add columnName key to descriptiondefinition
+			2) Add new typeExtent 'breakpointTime' and 'breakpointValue' -> in order to be able to share time across descriptions
+			Other proposals: 
+				- flip the dimensions of 'value' for breakpoint -> REJECTED: this would lead to a [[][][][][]] when storing a 1-dimensional breakpoint over time
+				- change 'entry' with 'entries' -> REJECTED for backward compatibility
 """
 
 import sys
@@ -56,7 +65,7 @@ class C_pyjama():
 	
 	# ===============================================
 	def __init__(self, notValidAction='addToDictionary'):
-		self.data['schemaversion'] 	= 1.1
+		self.data['schemaversion'] 	= 1.2
 		self.data['collection'] 	= {'descriptiondefinition':{}, 'entry':[]}
 		if notValidAction in ['addToDictionary', 'filterOut', 'reject']:
 			self.notValidAction = notValidAction
@@ -71,7 +80,7 @@ class C_pyjama():
 
 
 	# ===============================================
-	def M_addDefinition(self, name, typeConstraint='free', typeContent='text', typeExtent='global', generator={}, dictionary=[], isTable=True, isEditable=True, isFilter=True):
+	def M_addDefinition(self, name, typeConstraint='free', typeContent='text', typeExtent='global', columnName=[], generator={}, dictionary=[], isTable=True, isEditable=True, isFilter=True):
 		
 		self.data['collection']['descriptiondefinition'][name] = {}
 			
@@ -80,7 +89,7 @@ class C_pyjama():
 		else:
 			raise Exception('unknown type "%s" for typeContent' % (typeContent))
 
-		if typeExtent in ['global', 'segment', 'marker', 'breakpoint']:
+		if typeExtent in ['global', 'segment', 'marker', 'breakpoint', 'breakpointTime', 'breakpointValue']:
 			self.data['collection']['descriptiondefinition'][name]['typeExtent'] = typeExtent
 		else:
 			raise Exception('unknown type "%s" for typeExtent' % (typeExtent))
@@ -91,6 +100,7 @@ class C_pyjama():
 			raise Exception('unknown type "%s" for typeConstraint' % (typeConstraint))
 			
 		self.data['collection']['descriptiondefinition'][name]['dictionary']	= copy.copy(dictionary)
+		self.data['collection']['descriptiondefinition'][name]['columnName']	= copy.copy(columnName)
 		self.data['collection']['descriptiondefinition'][name]['isTable'] 	= isTable 
 		self.data['collection']['descriptiondefinition'][name]['isEditable']	= isEditable 
 		self.data['collection']['descriptiondefinition'][name]['isFilter'] 	= isFilter 
@@ -124,12 +134,20 @@ class C_pyjama():
 				currentTypeContent 	= self.data['collection']['descriptiondefinition'][name]['typeContent']
 				currentTypeConstraint 	= self.data['collection']['descriptiondefinition'][name]['typeConstraint']
 				currentTypeExtent 		= self.data['collection']['descriptiondefinition'][name]['typeExtent']
+				print currentTypeExtent
 				
 				if currentTypeExtent=='breakpoint':
-					if time.ndim>1: raise Exception('time must be a vector not a matrix')
-					if value.ndim!=2: raise Exception('value must be a matrix not a vector')
-					L = time.shape
-					if value.shape[1]!=time.shape[0]: raise Exception('number of rows of value %d must be equal to number of times %d' % (value.shape, time.shape[0]))
+					if value.ndim!=2: 
+						raise Exception('value must be a matrix not a vector')
+					nbColumnName = len(self.data['collection']['descriptiondefinition'][name]['columnName'])
+					if value.shape[0]!=nbColumnName: 
+						raise Exception('number of rows of value (%d) must be equal to number of columnName (%d)' % (value.shape[0], nbColumnName))
+
+					if time.ndim>1: 
+						raise Exception('time must be a vector not a matrix')
+					if value.shape[1]!=time.shape[0]: 
+						raise Exception('number of columns of value (%d) must be equal to number of times (%d)' % (value.shape[1], time.shape[0]))
+
 					# --- convert numpy array to list
 					# --- Note: convert back to numpy: np.array( np.zeros((3,10)).tolist() )
 					time = time.tolist()					
@@ -138,6 +156,41 @@ class C_pyjama():
 					entry['time'] = time
 					self.data['collection']['entry'][self.currentPosition][name].append(entry)
 					
+				elif currentTypeExtent=='breakpointTime':
+					# --- in the specific case of 'breakpointTime', the times are given through the value variable
+					if value.ndim>1: 
+						raise Exception('time must be a vector not a matrix')
+					value = value.tolist()					
+					entry['value'] = value
+					self.data['collection']['entry'][self.currentPosition][name].append(entry)
+					
+				elif currentTypeExtent=='breakpointValue':
+					if value.ndim!=2: 
+						raise Exception('value must be a matrix not a vector')
+					nbColumnName = len(self.data['collection']['descriptiondefinition'][name]['columnName'])
+					if value.shape[0]!=nbColumnName: 
+						raise Exception('number of rows of value (%d) must be equal to number of columnName (%d)' % (value.shape[0], nbColumnName))
+					
+					# --- Look for the name of the corresponding breakpointTime in descriptiondefinition
+					timeName = ''
+					for key in self.data['collection']['descriptiondefinition'].keys():
+						if self.data['collection']['descriptiondefinition'][key]['typeExtent']=='breakpointTime':
+							timeName=key
+					if len(timeName)==0: 
+						raise Exception('no breakpointTime has been defined in descriptiondefinition')
+					if timeName not in self.data['collection']['entry'][self.currentPosition].keys(): 
+						raise Exception('no breakpointTime has been given in current entry')
+					if len(self.data['collection']['entry'][self.currentPosition][timeName])==0: 
+						raise Exception('no breakpointTime has been given in current entry')
+					nbTime = len(self.data['collection']['entry'][self.currentPosition][timeName][0]['value'])
+					if value.shape[1]!=nbTime: 
+						raise Exception('number of columns of value (%d) must be equal to number of times (%d)' % (value.shape[1], nbTime))
+
+						
+					value = value.tolist()
+					entry['value'] = value
+					self.data['collection']['entry'][self.currentPosition][name].append(entry)
+
 				else:
 					if currentTypeConstraint=='free':		
 						isValid = True
@@ -267,12 +320,18 @@ def main(argv):
 
 
 # ==========================
-def test(argv):
+def exampleBreakPoint(argv):
+	"""
+	in breakpoint
+		time must be a vector (not a matrix)
+		value must be a matrix with (nbDim, nbTime)
+	"""
+	
 	import numpy as np
 	my = C_pyjama()
-	my.M_addDefinition(name='f0',typeExtent='breakpoint')
+	my.M_addDefinition(name='f0',typeExtent='breakpoint',columnName=['f0','harmonicity'])
 	my.M_addEntry()
-	my.M_updateEntry('f0', np.zeros((1,10)), np.zeros(10))
+	my.M_updateEntry(name='f0', value=np.zeros((2,10)), time=np.zeros(10))
 	my.M_save('test.pyjama')
 	
 	with open('test.pyjama') as f: my=json.load(f)
@@ -280,6 +339,31 @@ def test(argv):
 	np.array(my['collection']['entry'][0]['f0'][0]['value'])
 	ipdb.set_trace()
 	
+# ==========================
+def exampleBreakPointTimeValue(argv):
+	"""
+	in breakpointtime
+		time must be a vector (not a matrix)
+	in breakpointvalue
+		value must be a matrix with (nbDim, nbTime)
+	"""
+	
+	import numpy as np
+	my = C_pyjama()
+	my.M_addDefinition(name='blu',			typeExtent='breakpointTime')
+	my.M_addDefinition(name='alldescriptors',typeExtent='breakpointValue', 	columnName=['f0','harmonicity'])
+	my.M_addDefinition(name='loudness',		typeExtent='breakpointValue', 	columnName=['loudness'])
+	my.M_addEntry()
+	my.M_updateEntry(name='blu', 			value=np.zeros(10))
+	my.M_updateEntry(name='alldescriptors', 	value=np.zeros((2,10)))
+	my.M_updateEntry(name='loudness', 		value=np.zeros((1,10)))
+	my.M_save('test.pyjama')
+	
+	with open('test.pyjama') as f: my=json.load(f)
+	ipdb.set_trace()
+	
 # ==========================	
 if __name__ == '__main__':
-	main(sys.argv[1:])
+	#main(sys.argv[1:])
+	#exampleBreakPoint(sys.argv[1:])
+	exampleBreakPointTimeValue(sys.argv[1:])
