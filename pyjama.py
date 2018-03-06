@@ -50,6 +50,8 @@ version 1.2
             - change 'entry' with 'entries' -> REJECTED for backward compatibility
 
 2017/03/24: Re-factoring the python code to follow pep8 writing style recommendations
+
+2018/03/06: Added example of meanMfcc output
 """
 
 import sys
@@ -373,6 +375,7 @@ def exampleBreakPoint(argv):
     my = C_pyjama()
     my.M_addDefinition(name='f0', typeExtent='breakpoint', columnName=['f0'])
     my.M_addDefinition(name='mfcc', typeExtent='breakpoint', columnName=['mfcc1', 'mfcc2', 'mfcc3', 'mfcc4', 'mfcc5', 'mfcc6', 'mfcc7', 'mfcc8', 'mfcc9', 'mfcc10', 'mfcc11', 'mfcc12', 'mfcc13'])
+    my.M_addDefinition(name='meanMfcc', typeExtent='breakpoint', columnName=['mfcc1', 'mfcc2', 'mfcc3', 'mfcc4', 'mfcc5', 'mfcc6', 'mfcc7', 'mfcc8', 'mfcc9', 'mfcc10', 'mfcc11', 'mfcc12', 'mfcc13'])
 
     # --- 2) Create a first entry and update its value
     f0_time_v = np.arange(0, 2, 0.04)
@@ -382,6 +385,7 @@ def exampleBreakPoint(argv):
     my.M_addEntry()
     my.M_updateEntry(name='f0', value=f0_value_m, time=f0_time_v)
     my.M_updateEntry(name='mfcc', value=mfcc_value_m, time=mfcc_time_v)
+    my.M_updateEntry(name='meanMfcc', value=np.mean(mfcc_value_m, axis=1, keepdims=True), time=-1*np.ones(1))
 
     # --- 2) Create a second entry and update its value
     f0_time_v = np.arange(0, 4, 0.04)
@@ -447,5 +451,5 @@ if __name__ == '__main__':
     """
 
     #exampleSegment(sys.argv[1:])
-    #exampleBreakPoint(sys.argv[1:])
-    exampleBreakPointTimeValue(sys.argv[1:])
+    exampleBreakPoint(sys.argv[1:])
+    #exampleBreakPointTimeValue(sys.argv[1:])
