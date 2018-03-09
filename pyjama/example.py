@@ -47,6 +47,36 @@ def F_readCsv3(annotFile):
         annotLabel_l.append( aaa[2] )
     return annotTime_l, annotStop_l, annotLabel_l
 
+# ==========================
+def exampleSegmentPitchAndText(argv):
+    """
+    Example of using pyjama to the store the structural segments of a
+    collection (here we consider the SALAMI music structure collection)
+    """
+
+    # --- 1) Create the pyjama file structure
+    #myPyjama = pyjama.C_pyjama(notValidAction='reject')
+    myPyjama = pyjama.C_pyjama(notValidAction='addToDictionary')
+    #myPyjama = pyjama.C_pyjama(notValidAction='filterOut')
+
+    myPyjama.M_addDefinition(descriptionName='filepath',
+                             typeConstraint='free')
+    myPyjama.M_addDefinition(descriptionName='pitchandtexttype',
+                             typeExtent='segment',
+                             typeConstraint='free',
+                             generator={},
+                             dictionary=[])
+
+
+    myPyjama.M_addEntry()
+    myPyjama.M_updateEntry(descriptionName='filepath', value_l='./myAudioFile.mp3')
+    myPyjama.M_updateEntry(descriptionName='pitchandtexttype', value_l=[440., 'wasabi'], time_l=0.0, duration_l=1.0)
+
+    # --- 3) Save
+    myPyjama.M_save('./exampleSegmentPitchAndText.pyjama')
+    return
+
+
 
 # ==========================
 def exampleSegment(argv):
@@ -190,7 +220,7 @@ def exampleBreakPointTimeValue(argv):
 if __name__ == '__main__':
     """
     """
-
+    exampleSegmentPitchAndText(sys.argv[1:])
     exampleSegment(sys.argv[1:])
     exampleBreakPoint(sys.argv[1:])
     exampleBreakPointTimeValue(sys.argv[1:])
