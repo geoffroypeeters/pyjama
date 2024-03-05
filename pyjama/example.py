@@ -41,7 +41,7 @@ def F_readCsv3(annotFile):
     for line in lines:
         line = line.strip('\n')
         aaa = line.split('\t')
-        print aaa
+        print(aaa)
         annotTime_l.append( float(aaa[0]) )
         annotStop_l.append( float(aaa[1]) )
         annotLabel_l.append( aaa[2] )
