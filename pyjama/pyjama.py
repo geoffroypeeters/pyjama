@@ -52,6 +52,9 @@ version 1.2
 2017/03/24: Re-factoring the python code to follow pep8 writing style recommendations
 
 2018/03/06: Added example of meanMfcc output
+
+2024/03/05: Change compatibility to python 3 -> changed print
+            Removed 'encoding' in json_dump
 """
 
 import sys
@@ -123,7 +126,7 @@ def F_checkValueInDictionary(value_l, currentTypeContent, dictionary, notValidAc
         if currentTypeContent == 'text':
             if value not in dictionary:
                 if notValidAction == 'addToDictionary':
-                    print "'value'(%s) is not part of dictionary ->  updating dictionary" % (value)
+                    print("'value'(%s) is not part of dictionary ->  updating dictionary" % (value))
                     dictionary.append(value)
                 else:
                     isValid = False
@@ -362,7 +365,7 @@ class C_pyjama():
             else:
 
                 if self.notValidAction == 'filterOut':
-                    print "%s 'value'(%s) is not part of dictionary -> filteringOut" % (prefix, value)
+                    print("%s 'value'(%s) is not part of dictionary -> filteringOut" % (prefix, value))
                 else:
                     raise Exception("%s 'value'(%s) is not part of the dictionary -> add it first in 'descriptiondefinition'" % (prefix, value))
                 # --- END: Check validity of the entry
@@ -407,6 +410,7 @@ class C_pyjama():
         """
         """
 
-        print "writting pyjama file: %s" % (fileName)
+        print("writting pyjama file: %s" % (fileName))
         with open(fileName, 'w') as f:
-            json.dump(self.data, f, encoding='utf-8', indent=4)
+            #json.dump(self.data, f, encoding='utf-8', indent=4)
+            json.dump(self.data, f, indent=4)
