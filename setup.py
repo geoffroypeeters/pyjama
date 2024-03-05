@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pyjama',
-      version='1.31',
+      version='1.32',
       description='Common utilities and helpers',
       url='https://github.com/geoffroypeeters/pyjama',
       author='Geoffroy Peeters',
