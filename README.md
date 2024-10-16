@@ -1,152 +1,234 @@
 # Documentation pyjama format
-### Author: peeters@ircam.fr
-#### Date: 2018/03/06
+### Author: geoffroy.peeters@telecom-paris.fr
+#### Date: 2024/10/16
 
 # Introduction
 
-`pyjama`is a JSON format for storing the descriptions of entries belonging to a collection of entries.
-While usual description-format aims at storing the description of a single entry, the goal is here to store the descriptions of all entries of a collection.
-It is also a self-defined format since it includes a `descriptiondefinition` part which goal is to define the `description`used.
+.pyjama (*) is a file format based on JSON developed to store music annotations.
+A single file allows to store the annotations that correspond to ALL items of a dataset.
+The file is also self described:
+- one part is about defining the annotations that will be used,
+- the second part is about using those to describe all items of the dataset.
 
-The `pyjama` specifications are based on
-- IRCAM `musicdescription` XML format 
-- Brian McFee JAM format
+.pyjama was developed independently of [`JAMS`](https://github.com/marl/jams), and comes from an an evolution of the .xml definition of `mpeg-7-audio` or the .xml definition of `music-description` developed by ircam.
 
-# Global structure:
-
-### descriptionAtom
-
-	{
-		'value':			text or float (nbDim, nbTime)
-		'confidence':
-		'time':			float-scalar or (nbTime, 1)
-		'duration':
-		'comment':
-		'startFreq':
-		'endFreq'
-	}
-
-- A `descriptionAtom ` is the basis unit for describing data
-- It is a `dictionary`
+(*) pyjama stands for python json audio music annotation; It is the protective layer that safeguards your data while it rests on a hard drive.
 
 
-### descriptionContent
+The top level of the file distingishes
+- `schemaversion`: the version of the pyjama specification
+- `collection`: the content itself
 
-	[ 
-		$descriptionAtom, 
-		$descriptionAtom, 
-		$descriptionAtom 
-	] 
+```python
+{
+    "schemaversion": 1.31,
+    "collection": {
+                  ...
+                  }
+```
 
-- A `description` groups the set of `descriptionAtom` related to the same `descriptionName`
-- It is a `list` (since the same `descriptionName` can potentially have several values)
-- **Example**: to store several chord segments over time or several genres associated to a track) 
+The level below `collection` distinguishes
+- `descriptiondefinition`: the definition of the annotations that will be used,
+- `entry`: the use of the defined annotations to describe all items of the dataset.
 
-### entry (could also have been named allDescriptions)
+`entry` is a list.
+Each element of this list describes a single item.
 
-	{
-		$descriptionName: $descriptionContent,
-		$descriptionName: $descriptionContent
-	}
+```python
+{
+    "schemaversion": 1.31,
+		"collection": {
+        "descriptiondefinition": {
+                                  ...
+                                  }
+        "entry": [
+                  {
+			$descriptionName: [descriptionAtom , descriptionAtom],
+			$descriptionName: [descriptionAtom],
+                  },
+                  {
+			$descriptionName: [descriptionAtom, descriptionAtom, descriptionAtom, descriptionAtom],
+			$descriptionName: [descriptionAtom],
+                  }
+                  ]
+```
 
-- An `entry` groups the set of `descriptionName`/`descriptionContent ` related to a file
-- It is a dictionary (in order to avoid having twice the same `descriptionName`)
-- **Example**: store the various description associated to an entry
+This single element (single `entry`) is a dictionary, a set of (`key`,`value`)
 
+# descriptionName
 
-### allEntries
-					
-	[
-		$entry,
-		$entry
-	]
+Each `key` of this dictionary refers to a specific `descriptionName` (or annotation-type).
+In the example below, the `descriptionName` are `filepath`, `structure`, `genre`, `tempo`, `title`, ...
 
-- A `allEntries` stores the various `entry` of a collection
-- It is a list
+The `value` associated to a `descriptionName` (or annotation-type) is a list of `descriptionAtom`.
+The use of a list allows to have several `descriptionAtom` associated to a given `descriptionName` (or annotation-type).
 
-
-### descriptionDefinitionAtom
-
-	{
-		'typeExtent':		'global' | 'marker' | 'segment' | 'breakpoint' | 'breakpointTime' | 'breakpointValue'
-		'typeContent':		'text' | 'numeric'
-		'typeConstraint':	'free' | 'filePath' | 'valueInDictionary'
-		'dictionary':		if 'typeContent'=='text'    then 'dictionary' =  [string, string] 
-							if 'typeContent'=='numeric' then 'dictionary' =  [minFloatValue, maxFlatValue]
-		'columnName':		[string, sring, string]
-		'generator':			
-		'isTable':			true | false
-		'isFilter':			true | false
-		'isEditable':		true | false
-	}
-
-- A `descriptionDefinitionAtom` stores the definition related to a `descriptionName`
-- It is a dictionay
-
-### allDescriptionDefinitions
-
-	{
-		$descriptionName: $descriptionDefinitionAtom,
-		$descriptionName: $descriptionDefinitionAtom
-	}
+In the example below, when `descriptionName` is `structure`, we have several segments over time defining the music structre. Each segment is defined as a `descriptionAtom` with its `time`,`duration`,`value` field.
+We could also have several `genre` associated to the item (multi-label, each one with a `confidence`).
 
 
-### all
-			
-	{
-	    "schemaversion": 1.2, 
-	    "collection": 
-	    		{
-				'entry': $allEntries
-				'descriptiondefinition': $allDescriptionDefinitions
-			}
-	}
+# descriptionAtom
+
+The content of a single `descriptionAtom` is defined in the `descriptiondefinition` part of the .pyjama file.
+In the example above,
+- the `descriptionName` `structure` is defined as  {"typeContent": "text" and "typeExtent": "segment"} and its `descriptionAtom` has therefore the fields `value`/`time`/`duration`.
+- the `descriptionName` `genre` is defined as {"typeContent": "text", "typeExtent": "global"} ans its `descriptionAtom` has therefore only the field `value`.
 
 
+Example of dummy entry:
+```python
+"entry": [
+            {
+                "filepath": [
+                    {
+                        "value": "Isophonics_01 A Kind Of Magic.mp3"
+                    }
+                ],
+                "structure": [
+                    {
+                        "value": "silence",
+                        "time": 0.0,
+                        "duration": 1.09
+                    },
+                    {
+                        "value": "intro",
+                        "time": 1.09,
+                        "duration": 25.758
+                    }
+                    ]
+                "genre": [
+                    {
+                        "value": "blues"
+                    }
+                    ],
+                "tempo": [
+                    {
+                        "value": 125.87
+                    }
+                    ]
+                "title": [
+                    {
+                        "value": "Come On Let's Go"
+                    }
+                ],
+                "performer": [
+                    {
+                        "value": "Broadcast"
+                    }
+                ],
+                "release-date": [
+                    {
+                        "value": "March 20, 2000"
+                    }
+                ],
+}
+```
 
-# Validity checking
+# Description definition
 
+The full description of a `descriptionAtom` contains
 
-| aaa | aaa |
+```python
+{
+  'typeExtent':       'global' | 'marker' | 'segment' | 'breakpoint' | 'breakpointTime' | 'breakpointValue'
+  'typeContent':      'text' | 'numeric'
+  'typeConstraint':   'free' | 'filePath' | 'valueInDictionary'
+  'dictionary':       if 'typeContent'=='text'    then 'dictionary' =  [string, string]
+                      if 'typeContent'=='numeric' then 'dictionary' =  [minFloatValue, maxFlatValue]
+  'columnName':       [string, string, string]
+  'generator':
+}
+```
+
+Depending on the `typeExtent` value, the following validation are performed file:
+
+| typeExtent | Action |
 | --- | --- |
-| if `typeConstraint`==`free` 			| then `value` can be whatever you want |
-| if `typeConstraint`==`filePath` 		| then `value` must contains a file that exist  |
-| if `typeConstraint`==`valueInDictionary`	| then `value` must be included in `dictionary`  |
 | if `typeExtent`==`marker` 				| then `time` must be defined |
 | if `typeExtent`==`segment` 				| then both `time`and `duration` must be defined |
 | if `typeContent`==`breakpoint`			| then `value`must be a matrix |
 
-# Format for storing breakPoint
 
-- 'columnName':
+The maximum content associated to a `descriptionAtom` is
+
+```python
+{
+	'value':                 text or float (nbDim, nbTime)
+	'confidence':
+	'time':                  float-scalar or (nbTime, 1)
+	'duration':
+	'comment':
+}
+```
+
+Depending on the `typeConstraint` value, the following validation are performed file:
+
+| typeConstraint | Action |
+| --- | --- |
+| if `typeConstraint`==`free` 			| then `value` can be whatever you want |
+| if `typeConstraint`==`filePath` 		| then `value` must contains a file that exist  |
+| if `typeConstraint`==`valueInDictionary`	| then `value` must be included in `dictionary`  |
+
+
+
+## Format for storing breakPoint
+
+Storing breakpoint function, i.e. a set of (mono or multi-dimensional) values over time (such as f0 values over time, of multi-f0 values over time) can be done efficiently using the `breakpoint` type.
+
+We consider that the data to be stored is given as a matrix of dimensions (nbTime,nbDim).
+
+In `descriptiondefinition`, we should specify
+- `columnName`: indicate the name of the various dimension (such as `f0_midi_violin`, `f0_midi_clarinet`, ... in the example below).
 	- len(columnName) = nbDim
 
-- 'time': 
-	- python: time.shape -> (nbTime,)
+For mono-dimensional description, we have the following `key` in `descriptionAtom`
+- `time`: 
+	- shape: (nbTime,)
 	- json: [ time1, time2, time3 ]
-- 'value': 
-	- python: value.shape -> (nbDim, nbTime)
-	- json: [ [dimension1(time1), dimension1(time2), dimension1(time3)], [dimension2(time1), dimension2(time2), dimension2(time3)] ]
+- `value`: 
+	- shape: (nbTime, 1)
+	- json: [ [dimension1(time1)], [dimension1(time2)], [dimension1(time3)]] ]
 
-For global but multi-dimensional description
+For multi-dimensional description, we have the following `key` in `descriptionAtom`
+- `time`: 
+	- shape: (nbTime,)
+	- json: [ time1, time2, time3 ]
+- `value`: 
+	- shape: (nbTime, nbDim)
+	- json: [ [dimension1(time1), dimension2(time1), dimension3(time1)], [dimension1(time2), dimension2(time2), dimension3(time2)] ]
 
-- 'value': 
-	- python: value.shape (nbDim, 1)
-	- json: [ [dimension1], [dimension2] ]
+For global but multi-dimensional description, we have the following `key` in `descriptionAtom`
+- `value`: 
+	- shape: (1, nbDim)
+	- json: [ [dimension1, dimension2, dimension3 ] ]
 
-'value' is always a matrix
+It should be noted that `value` is always stored as a matrix.
 
 
-------------------------
-time 
-- float
-- list of float
-- 
 
+Example of dummy multi-f0 file:
+```python
+ "collection": {
+    "descriptiondefinition": {
+      "f0multi": {
+                "typeContent": "numeric",
+                "typeExtent": "breakpoint",
+                "typeConstraint": "free",
+                "dictionary": [],
+                "columnName": [
+                    "f0_midi_violin",
+                    "f0_midi_clarinet",
+                    "f0_midi_saxphone",
+                    "f0_midi_bassoon"
+                ],
+                "isTable": true,
+                "isEditable": true,
+                "isFilter": true
+            }
+    }
+```
 
 # Examples
-
-## Example of multi-label tagging
 
 ## Example of segment annotations (structure)
 
@@ -244,12 +326,23 @@ time
 	    }
 	}
 
+## Example of multi-label tagging
+
+TODO
+
 ## Example of marker annotations (beat)
+
+TODO
 
 ## Example of break-point values 1
 
+TODO
 ## Example of break-point values 2
 
+TODO
+
 ## Example of global multi-dimensional descriptor
+
+TODO
 
 	
