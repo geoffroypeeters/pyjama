@@ -71,8 +71,8 @@ We could also have several `genre` associated to the item (multi-label, each one
 
 The content of a single `description_atom` is defined in the `descriptiondefinition` part of the .pyjama file.
 In the example above,
-- the `description_name` `structure` is defined as  {"typeContent": "text" and "typeExtent": "segment"} and its `description_atom` has therefore the fields `value`/`time`/`duration`.
-- the `description_name` `genre` is defined as {"typeContent": "text", "typeExtent": "global"} ans its `description_atom` has therefore only the field `value`.
+- the `description_name` `structure` is defined as  {"type_content": "text" and "type_extent": "segment"} and its `description_atom` has therefore the fields `value`/`time`/`duration`.
+- the `description_name` `genre` is defined as {"type_content": "text", "type_extent": "global"} and its `description_atom` has therefore only the field `value`.
 
 
 Example of dummy entry:
@@ -130,7 +130,7 @@ The full description of a `description_atom` contains
 
 ```python
 {
-  'type_extent':       'global' | 'marker' | 'segment' | 'breakpoint' | 'breakpointTime' | 'breakpointValue'
+  'type_extent':       'global' | 'marker' | 'segment' | 'breakpoint' | 'breakpoint_time' | 'breakpoint_value'
   'type_content':      'text' | 'numeric'
   'type_constraint':   'free' | 'filepath' | 'value_in_dictionary'
   'dictionary':       if 'type_content'=='text'    then 'dictionary' =  [string, string]
@@ -153,10 +153,10 @@ The maximum content associated to a `description_atom` is
 
 ```python
 {
-	'value':                 text or float (nbDim, nbTime)
+	'value':                 text or float (nb_dim, nb_time)
 	'confidence':
-	'time':                  float-scalar or (nbTime, 1)
-	'duration':
+	'time':                  float-scalar or (nb_time, )
+	'duration':              float-scalar or (nb_time, )
 	'comment':
 }
 ```
@@ -183,23 +183,23 @@ In `descriptiondefinition`, we should specify
 
 For mono-dimensional description, we have the following `key` in `description_atom`
 - `time`: 
-	- shape: (nbTime,)
+	- shape: (nb_time,)
 	- json: [ time1, time2, time3 ]
 - `value`: 
-	- shape: (1, nbTime)
+	- shape: (1, nb_time)
 	- json: [ [dimension1(time1), dimension1(time2), dimension1(time3)] ]
 
 For multi-dimensional description, we have the following `key` in `description_atom`
 - `time`: 
-	- shape: (nbTime,)
+	- shape: (nb_time,)
 	- json: [ time1, time2, time3 ]
 - `value`: 
-	- shape: (nbDim, nbTime)
+	- shape: (nb_dim, nb_time)
 	- json: [ [dimension1(time1), dimension1(time2), dimension1(time3)], [dimension2(time1), dimension2(time2), dimension2(time3)] ]
 
 For global but multi-dimensional description, we have the following `key` in `description_atom`
 - `value`: 
-	- shape: (1, nbDim)
+	- shape: (1, nb_dim)
 	- json: [ [dimension1], [dimension2], [dimension3] ] ]
 
 It should be noted that `value` is always stored as a matrix.
