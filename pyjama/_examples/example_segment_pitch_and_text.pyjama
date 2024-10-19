@@ -1,0 +1,46 @@
+{
+    "schemaversion": 1.4,
+    "collection": {
+        "descriptiondefinition": {
+            "filepath": {
+                "type_content": "text",
+                "type_extent": "global",
+                "type_constraint": "free",
+                "dictionary": [],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true
+            },
+            "pitchandtexttype": {
+                "type_content": "text",
+                "type_extent": "segment",
+                "type_constraint": "free",
+                "dictionary": [],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true
+            }
+        },
+        "entry": [
+            {
+                "filepath": [
+                    {
+                        "value": "./myAudioFile.mp3"
+                    }
+                ],
+                "pitchandtexttype": [
+                    {
+                        "value": [
+                            440.0,
+                            "wasabi"
+                        ],
+                        "time": 0.0,
+                        "duration": 1.0
+                    }
+                ]
+            }
+        ]
+    }
+}

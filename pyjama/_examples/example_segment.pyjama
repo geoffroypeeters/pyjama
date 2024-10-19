@@ -1,0 +1,200 @@
+{
+    "schemaversion": 1.4,
+    "collection": {
+        "descriptiondefinition": {
+            "filepath": {
+                "type_content": "text",
+                "type_extent": "global",
+                "type_constraint": "filepath",
+                "dictionary": [],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true
+            },
+            "structtype": {
+                "type_content": "text",
+                "type_extent": "segment",
+                "type_constraint": "value_in_dictionary",
+                "dictionary": [
+                    "Silence",
+                    "A",
+                    "B",
+                    "C",
+                    "D",
+                    "E",
+                    "F",
+                    "I",
+                    "V",
+                    "End"
+                ],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true,
+                "generator": {
+                    "name": "",
+                    "version": "",
+                    "date": ""
+                }
+            },
+            "structtypeList": {
+                "type_content": "text",
+                "type_extent": "segment",
+                "type_constraint": "value_in_dictionary",
+                "dictionary": [
+                    "Silence",
+                    "A",
+                    "B",
+                    "C"
+                ],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true,
+                "generator": {
+                    "name": "",
+                    "version": "",
+                    "date": ""
+                }
+            }
+        },
+        "entry": [
+            {
+                "filepath": [
+                    {
+                        "value": "./_examples/audio1.mp3"
+                    }
+                ],
+                "structtype": [
+                    {
+                        "value": "A",
+                        "time": 0.0,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "B",
+                        "time": 0.1,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "C",
+                        "time": 0.2,
+                        "duration": 0.09999999999999998
+                    }
+                ],
+                "structtypeList": [
+                    {
+                        "value": [
+                            [
+                                "A",
+                                "B",
+                                "C"
+                            ]
+                        ],
+                        "time": [
+                            0.0,
+                            0.1,
+                            0.2
+                        ],
+                        "duration": [
+                            0.1,
+                            0.1,
+                            0.09999999999999998
+                        ]
+                    }
+                ]
+            },
+            {
+                "filepath": [
+                    {
+                        "value": "./_examples/audio2.mp3"
+                    }
+                ],
+                "structtype": [
+                    {
+                        "value": "A",
+                        "time": 0.0,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "B",
+                        "time": 0.1,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "C",
+                        "time": 0.2,
+                        "duration": 0.09999999999999998
+                    }
+                ],
+                "structtypeList": [
+                    {
+                        "value": [
+                            [
+                                "A",
+                                "B",
+                                "C"
+                            ]
+                        ],
+                        "time": [
+                            0.0,
+                            0.1,
+                            0.2
+                        ],
+                        "duration": [
+                            0.1,
+                            0.1,
+                            0.09999999999999998
+                        ]
+                    }
+                ]
+            },
+            {
+                "filepath": [
+                    {
+                        "value": "./_examples/audio3.mp3"
+                    }
+                ],
+                "structtype": [
+                    {
+                        "value": "A",
+                        "time": 0.0,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "B",
+                        "time": 0.1,
+                        "duration": 0.1
+                    },
+                    {
+                        "value": "C",
+                        "time": 0.2,
+                        "duration": 0.09999999999999998
+                    }
+                ],
+                "structtypeList": [
+                    {
+                        "value": [
+                            [
+                                "A",
+                                "B",
+                                "C"
+                            ]
+                        ],
+                        "time": [
+                            0.0,
+                            0.1,
+                            0.2
+                        ],
+                        "duration": [
+                            0.1,
+                            0.1,
+                            0.09999999999999998
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

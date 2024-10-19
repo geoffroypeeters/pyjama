@@ -17,34 +17,34 @@ A pyjama file is a dictionay with two main keys:
             - A single description is itself a list (it is therefore possible to have various values for a single description, such as various segments or multi-label)
                 Each element of this list is a SDDE (Shared Description Dictionary Atiom)
                 A SDDA has the keys
-                    value, confidence, time, duration, startFreq, endFreq
+                    value, confidence, time, duration, start_freq, end_freq
                     Not all this keys are mandatory.
                 To store a global (not time specific) description: simply use 'value' (use 'confidence' if you know how reliable is the 'value')
                 To store a marker (with null duration, such as beat positions) description: simply use 'value' and 'time'
                 To store a segment (such as speech segments in a file): simply use 'value', 'time' and 'duration'
-                The keys 'startFreq' and 'endFreq' are used for Audiosculpt musicdescription xml compatibility.
+                The keys 'start_freq' and 'end_freq' are used for Audiosculpt musicdescription xml compatibility.
 
         - 'descriptiondefinition' (which provides the definitions of the description provided for each entry)
             - Each description is defined by a dictionary with the following keys
-                - 'typeExtent': describes the temporal extent of the value {'global', 'marker', 'segment'}
-                - 'typeContent': describes the format of the value {'text', 'numeric'}
-                - 'typeConstraint': describes whether a constraint has to be applied to validate a value  {'free', 'filePath, 'valueInDictionary'}
-                - 'dictionary': contains the list of possible values (when 'valueInDictionary' is used)
+                - 'type_extent': describes the temporal extent of the value {'global', 'marker', 'segment'}
+                - 'type_content': describes the format of the value {'text', 'numeric'}
+                - 'typeConstraint': describes whether a constraint has to be applied to validate a value  {'free', 'filepath, 'value_in_dictionary'}
+                - 'dictionary': contains the list of possible values (when 'value_in_dictionary' is used)
                 The following 'keys' are used for GUI purposes
-                - 'isTable'
-                - 'isEditable'
-                - 'isFilter'
+                - 'is_table'
+                - 'is_editable'
+                - 'is_filter'
 
 version 1.1
 2017/03/08:	Added breakpoint support
         Format is
-            time(nbTime): is a vecor
-            value((nbDIm,nbTime)): is a matrix
+            time(nb_time): is a vecor
+            value((nb_dim,nb_time)): is a matrix
 
 version 1.2
 2017/03/14: Following discussion with Diemo Schwarz and Benjamin Matuszewski:
-        1) Update breakpoint format -> add columnName key to descriptiondefinition
-        2) Add new typeExtent 'breakpointTime' and 'breakpointValue' -> in order to be able to share time across descriptions
+        1) Update breakpoint format -> add column_name key to descriptiondefinition
+        2) Add new type_extent 'breakpoint_time' and 'breakpoint_value' -> in order to be able to share time across descriptions
         Other proposals:
             - flip the dimensions of 'value' for breakpoint -> REJECTED: this would lead to a [[][][][][]] when storing a 1-dimensional breakpoint over time
             - change 'entry' with 'entries' -> REJECTED for backward compatibility
@@ -55,6 +55,7 @@ version 1.2
 
 2024/03/05: Change compatibility to python 3 -> changed print
             Removed 'encoding' in json_dump
+2024/10/19: Change orientation of data in breakpoint mode 
 """
 
 import sys
@@ -68,7 +69,7 @@ import numpy as np
 import collections
 
 
-def F_backwardCompatibility(entry):
+def F_backward_compatibility(entry):
     """
     to ensure backward compatibility: IF only one value THEN do not use list
     """
@@ -80,28 +81,31 @@ def F_backwardCompatibility(entry):
     return entry
 
 
-def F_numericInput(numeric_l=[], checkVector=False, prefix='', fieldName=''):
+def F_numeric_input(numeric_l=[], 
+                    check_vector=False, 
+                    prefix='', 
+                    field_name=''):
     """
     check and transform numerical value to list of float
     """
 
     if type(numeric_l) not in [float, list, np.ndarray]:
-        raise Exception("%s '%s' must be float, list or np.ndarray" % (prefix, fieldName))
+        raise Exception(f"{prefix} '{field_name}' must be float, list or np.ndarray")
 
-    if type(numeric_l) is list:
+    if isinstance(numeric_l, list):
         for numeric in numeric_l:
-            if type(numeric) is not float:
-                raise Exception("%s all elements of '%s' list must be float" % (prefix, fieldName))
+            if not isinstance(numeric, float):
+                raise Exception(f"{prefix} all elements of '{field_name}' list must be float")
 
 
-    if type(numeric_l) is float:
+    if isinstance(numeric_l, float):
         numeric_l = [numeric_l]
 
-    elif type(numeric_l) is np.ndarray:
-        if checkVector:
+    elif isinstance(numeric_l, np.ndarray):
+        if check_vector:
             if numeric_l.ndim == 2:
                 if (numeric_l.shape[0] > 1) and (numeric_l.shape[0] > 1):
-                    raise Exception("%s '%s' cannot be a matrix" % (prefix, fieldName))
+                    raise Exception(f"{prefix} '{field_name}' cannot be a matrix")
                 elif (numeric_l.shape[0] == 1) and (numeric_l.shape[0] > 1):
                     numeric_l = numeric_l[0, :]
                 else:
@@ -111,39 +115,42 @@ def F_numericInput(numeric_l=[], checkVector=False, prefix='', fieldName=''):
     return numeric_l
 
 
-def F_checkValueInDictionary(value_l, currentTypeContent, dictionary, notValidAction):
+def F_check_value_in_dictionary(value_l,
+                                current_type_content,
+                                dictionary,
+                                not_valid_action):
     """
     """
-    if type(value_l) is list:
-        """ flatten value: in case it is a list of list, it is changed to a list """
-        flattenValue_l = [item for sublist in value_l for item in sublist]
+    if isinstance(value_l, list):
+        # --- flatten value: in case it is a list of list, it is changed to a list
+        flatten_value_l = [item for sublist in value_l for item in sublist]
     else:
-        flattenValue_l = [value_l]
+        flatten_value_l = [value_l]
 
-    isValid = True
-    for value in flattenValue_l:
+    is_valid = True
+    for value in flatten_value_l:
 
-        if currentTypeContent == 'text':
+        if current_type_content == 'text':
             if value not in dictionary:
-                if notValidAction == 'addToDictionary':
-                    print("'value'(%s) is not part of dictionary ->  updating dictionary" % (value))
+                if not_valid_action == 'add_to_dictionary':
+                    print(f"'value'({value}) is not part of dictionary ->  updating dictionary")
                     dictionary.append(value)
                 else:
-                    isValid = False
+                    is_valid = False
 
-        elif currentTypeContent == 'numeric':
-            minValue = dictionary[0]
-            maxValue = dictionary[1]
-            if (value < minValue) or (maxValue < value):
-                if notValidAction == 'addToDictionary':
-                    if value < minValue:
+        elif current_type_content == 'numeric':
+            min_value = dictionary[0]
+            max_value = dictionary[1]
+            if (value < min_value) or (max_value < value):
+                if not_valid_action == 'add_to_dictionary':
+                    if value < min_value:
                         dictionary[0] = value
-                    if value > maxValue:
+                    if value > max_value:
                         dictionary[1] = value
             else:
-                isValid = False
+                is_valid = False
 
-    return isValid, dictionary
+    return is_valid, dictionary
 
 
 
@@ -152,222 +159,247 @@ class C_pyjama():
     """
 
     data = {}
-    currentPosition = -1
-    notValidAction = ''
+    current_position = -1
+    not_valid_action = '' # ---- decide how to deal with values which are not in dictionary
+
 
     # ===============================================
-    def __init__(self, notValidAction='addToDictionary'):
+    def __init__(self, not_valid_action='add_to_dictionary'):
         """
         """
 
-        self.data['schemaversion'] = 1.31
+        self.data['schemaversion'] = 1.4
         self.data['collection'] = {'descriptiondefinition': {}, 'entry': []}
-        if notValidAction in ['addToDictionary', 'filterOut', 'reject']:
-            self.notValidAction = notValidAction
+        if not_valid_action in ['add_to_dictionary', 'filter_out', 'reject']:
+            self.not_valid_action = not_valid_action
         else:
-            raise Exception('Problem creating "pyjama" structure: unknown type "%s" for notValidAction' % (notValidAction))
+            raise Exception(f'Problem creating "pyjama" structure: unknown type "{not_valid_action}" for not_valid_action')
 
 
     # ===============================================
-    def __setattr__(self, attrName, val):
+    def __setattr__(self, attr_name, attr_val):
         """
         """
 
-        if hasattr(self, attrName):
-            self.__dict__[attrName] = val
+        if hasattr(self, attr_name):
+            self.__dict__[attr_name] = attr_val
         else:
-            raise Exception("self.%s note part of the fields" % attrName)
+            raise Exception(f"self.{attr_name} note part of the fields")
+
 
     # ===============================================
-    def M_addDefinition(self, descriptionName, typeConstraint='free', typeContent='text',
-                        typeExtent='global', columnName=[], generator={},
-                        dictionary=[], isTable=True, isEditable=True,
-                        isFilter=True):
+    def M_add_definition(self, 
+                        description_name, 
+                        type_constraint='free', 
+                        type_content='text',
+                        type_extent='global', 
+                        #column_name=[],  # --- 2024/10/19
+                        row_name=[], # --- 2024/10/19
+                        generator={},
+                        dictionary=[], 
+                        is_table=True, 
+                        is_editable=True,
+                        is_filter=True):
         """
         """
 
-        self.data['collection']['descriptiondefinition'][descriptionName] = collections.OrderedDict()
+        self.data['collection']['descriptiondefinition'][description_name] = collections.OrderedDict()
 
-        if typeContent in ['text', 'numeric']:
-            self.data['collection']['descriptiondefinition'][descriptionName]['typeContent'] = typeContent
+        if type_content in ['text', 'numeric']:
+            self.data['collection']['descriptiondefinition'][description_name]['type_content'] = type_content
         else:
-            raise Exception('unknown type "%s" for typeContent' % (typeContent))
+            raise Exception(f'unknown type "{type_content}" for type_content')
 
-        if typeExtent in ['global', 'segment', 'marker', 'breakpoint', 'breakpointTime', 'breakpointValue']:
-            self.data['collection']['descriptiondefinition'][descriptionName]['typeExtent'] = typeExtent
+        if type_extent in ['global', 'segment', 'marker', 'breakpoint', 'breakpoint_time', 'breakpoint_value']:
+            self.data['collection']['descriptiondefinition'][description_name]['type_extent'] = type_extent
         else:
-            raise Exception('unknown type "%s" for typeExtent' % (typeExtent))
+            raise Exception(f'unknown type "{type_extent}" for type_extent')
 
-        if typeConstraint in ['filePath', 'free', 'valueInDictionary']:
-            self.data['collection']['descriptiondefinition'][descriptionName]['typeConstraint'] = typeConstraint
+        if type_constraint in ['filepath', 'free', 'value_in_dictionary']:
+            self.data['collection']['descriptiondefinition'][description_name]['type_constraint'] = type_constraint
         else:
-            raise Exception('unknown type "%s" for typeConstraint' % (typeConstraint))
+            raise Exception(f'unknown type "{type_constraint}" for type_constraint')
 
-        self.data['collection']['descriptiondefinition'][descriptionName]['dictionary'] = copy.copy(dictionary)
-        self.data['collection']['descriptiondefinition'][descriptionName]['columnName'] = copy.copy(columnName)
-        self.data['collection']['descriptiondefinition'][descriptionName]['isTable'] = isTable
-        self.data['collection']['descriptiondefinition'][descriptionName]['isEditable'] = isEditable
-        self.data['collection']['descriptiondefinition'][descriptionName]['isFilter'] = isFilter
+        self.data['collection']['descriptiondefinition'][description_name]['dictionary'] = copy.copy(dictionary)
+        #self.data['collection']['descriptiondefinition'][description_name]['column_name'] = copy.copy(column_name) # --- 2024/10/19
+        self.data['collection']['descriptiondefinition'][description_name]['row_name'] = copy.copy(row_name) # --- 2024/10/19
+        self.data['collection']['descriptiondefinition'][description_name]['is_table'] = is_table
+        self.data['collection']['descriptiondefinition'][description_name]['is_editable'] = is_editable
+        self.data['collection']['descriptiondefinition'][description_name]['is_filter'] = is_filter
         if len(generator):
-            self.data['collection']['descriptiondefinition'][descriptionName]['generator'] = generator
+            self.data['collection']['descriptiondefinition'][description_name]['generator'] = generator
+
 
     # ===============================================
-    def M_addEntry(self):
+    def M_add_entry(self):
         """
         """
 
         entry = {}
-        for descriptionName in self.data['collection']['descriptiondefinition'].keys():
-            entry[descriptionName] = []
+        for description_name in self.data['collection']['descriptiondefinition'].keys():
+            entry[description_name] = []
         self.data['collection']['entry'].append(entry)
-        self.currentPosition += 1
+        self.current_position += 1
+
 
     # ===============================================
-    def M_updateEntry(self, descriptionName, value_l=[], confidence_l=[], time_l=[], duration_l=[],
-                      startFreq_l=[], endFreq_l=[], comment=''):
+    def M_update_entry(self, 
+                        description_name,
+                        value_l=[],
+                        confidence_l=[],
+                        time_l=[],
+                        duration_l=[],
+                        start_freq_l=[], 
+                        end_freq_l=[], 
+                        comment=''):
         """
         """
+        prefix = f"ERROR updating self.data['collection']['entry'][{len(self.data['collection']['entry'])}]['{description_name}']:\n\t"
 
-        prefix = "ERROR updating self.data['collection']['entry'][%d]['%s']:\n\t" % (len(self.data['collection']['entry']), descriptionName)
+        if description_name not in self.data['collection']['descriptiondefinition'].keys():
 
-        if descriptionName not in self.data['collection']['descriptiondefinition'].keys():
-
-            raise Exception("%s '%s' is not part of 'descriptiondefinition' -> add it first in 'descriptiondefinition'" % (prefix, descriptionName))
+            raise Exception(f"{prefix} '{description_name}' is not part of 'descriptiondefinition' -> add it first in 'descriptiondefinition'")
 
         else:
 
-            currentTypeExtent = self.data['collection']['descriptiondefinition'][descriptionName]['typeExtent']
-            currentTypeContent = self.data['collection']['descriptiondefinition'][descriptionName]['typeContent']
-            currentTypeConstraint = self.data['collection']['descriptiondefinition'][descriptionName]['typeConstraint']
+            current_type_extent = self.data['collection']['descriptiondefinition'][description_name]['type_extent']
+            current_type_content = self.data['collection']['descriptiondefinition'][description_name]['type_content']
+            current_type_constraint = self.data['collection']['descriptiondefinition'][description_name]['type_constraint']
 
-            if currentTypeExtent in ['global', 'marker', 'segment', 'breakpoint', 'breakpointTime', 'breakpointValue']:
-                """ check VALUE """
+            if current_type_extent in ['global', 'marker', 'segment', 'breakpoint', 'breakpoint_time', 'breakpoint_value']:
+                # --- check VALUE
 
                 if type(value_l) not in [str, int, float, list, np.ndarray]:
-                    raise Exception("%s 'value' must be str, int, float, list or np.ndarray")
+                    raise Exception(f"{prefix} 'value' must be str, int, float, list or np.ndarray")
 
                 if type(value_l) in [str, float, int]:
                     value_l = [value_l]
 
                 elif type(value_l) is np.ndarray:
                     if value_l.ndim != 2:
-                        raise Exception("%s IF 'value' is np.ndarray THEN it must be must value.ndim == 2")
-                    """ value (nbDim, nbTime) -> [ [allDim(Time1)] [allDim(Time2)] [allDim(Time3)] [allDim(Time4)] ]"""
-                    value_l = value_l.T.tolist()
+                        raise Exception(f"{prefix} IF 'value' is np.ndarray THEN it must be have value.ndim == 2")
+                    # --- value (nb_dim, nb_time) -> [ [allDim(Time1)] [allDim(Time2)] [allDim(Time3)] [allDim(Time4)] ]
+                    #value_l = value_l.T.tolist() # --- 2024/10/19
+                    value_l = value_l.tolist() # --- 2024/10/19
 
-                if currentTypeExtent in ['breakpoint', 'breakpointValue']:
-                    nbColumnName = len(self.data['collection']['descriptiondefinition'][descriptionName]['columnName'])
-                    if len(value_l[0]) != nbColumnName:
-                        raise Exception("%s nbDim of 'value' (%d) must be equal to nbColumnName' (%d)" % (prefix, len(value_l[0]), nbColumnName))
+                if current_type_extent in ['breakpoint', 'breakpoint_value']:
+#                    nb_column_name = len(self.data['collection']['descriptiondefinition'][description_name]['column_name'])
+#                    if len(value_l[0]) != nb_column_name:
+#                        raise Exception("%s nb_dim of 'value' (%d) must be equal to nb_column_name' (%d)" % (prefix, len(value_l[0]), nb_column_name))
+                    nb_row_name = len(self.data['collection']['descriptiondefinition'][description_name]['row_name'])
+                    if len(value_l) != nb_row_name: # --- 2024/10/19
+                        raise Exception(f"{prefix} nb_dim of 'value' ({len(value_l[0])}) must be equal to nb_row_name' ({nb_row_name})")
 
-                if currentTypeConstraint == 'free':
-                    isValid = True
+                if current_type_constraint == 'free':
+                    is_valid = True
 
-                elif currentTypeConstraint == 'filePath':
-                    isValid = True
+                elif current_type_constraint == 'filepath':
+                    is_valid = True
                     for value in value_l:
                         if not(os.path.isfile(value)):
-                            isValid = False
-                elif currentTypeConstraint == 'valueInDictionary':
-                    isValid, dictionary = F_checkValueInDictionary(value_l, currentTypeContent, self.data['collection']['descriptiondefinition'][descriptionName]['dictionary'], self.notValidAction)
+                            is_valid = False
+                elif current_type_constraint == 'value_in_dictionary':
+                    is_valid, dictionary = F_check_value_in_dictionary(value_l, current_type_content, self.data['collection']['descriptiondefinition'][description_name]['dictionary'], self.not_valid_action)
 
 
 
-            if currentTypeExtent in ['marker', 'segment', 'breakpoint']:
+            if current_type_extent in ['marker', 'segment', 'breakpoint']:
                 """ check TIME """
 
-                time_l = F_numericInput(numeric_l=time_l, checkVector=True, prefix=prefix, fieldName='time')
-
+                time_l = F_numeric_input(numeric_l=time_l, check_vector=True, prefix=prefix, field_name='time')
                 if len(time_l) > 1: # WASABI exception
-                    if len(time_l) != len(value_l):
-                        raise Exception("%s len('time') must be equal to len('value')" % (prefix))
+                    #if len(time_l) != len(value_l): # --- 2024/10/19
+#                        raise Exception(f"{prefix} len('time'): {len(time_l)} must be equal to len('value'): {len(value_l)}")
+                    if len(time_l) != len(value_l[0]):
+                        raise Exception(f"{prefix} len('time'): {len(time_l)} must be equal to len('value'): {len(value_l[0])}")
 
 
 
-            if currentTypeExtent in ['segment']:
+            if current_type_extent in ['segment']:
                 """ check DURATION """
 
-                duration_l = F_numericInput(numeric_l=duration_l, checkVector=True, prefix=prefix, fieldName='duration')
+                duration_l = F_numeric_input(numeric_l=duration_l, check_vector=True, prefix=prefix, field_name='duration')
 
                 if len(time_l) > 1: # WASABI exception
                     if len(time_l) != len(duration_l):
-                        raise Exception("%s len('time') must be equal to len('duration')" % (prefix))
+                        raise Exception(f"{prefix} len('time') must be equal to len('duration')")
 
-            confidence_l = F_numericInput(numeric_l=confidence_l, checkVector=True, prefix=prefix, fieldName='confidence')
-            startFreq_l = F_numericInput(numeric_l=startFreq_l, checkVector=True, prefix=prefix, fieldName='startFreq')
-            endFreq_l = F_numericInput(numeric_l=endFreq_l, checkVector=True, prefix=prefix, fieldName='endFreq')
+            confidence_l = F_numeric_input(numeric_l=confidence_l, check_vector=True, prefix=prefix, field_name='confidence')
+            start_freq_l = F_numeric_input(numeric_l=start_freq_l, check_vector=True, prefix=prefix, field_name='start_freq')
+            end_freq_l = F_numeric_input(numeric_l=end_freq_l, check_vector=True, prefix=prefix, field_name='end_freq')
 
-            if len(confidence_l):
-                if len(time_l):
+            if confidence_l:
+                if time_l:
                     if len(time_l) != len(confidence_l):
-                        raise Exception("%s len('time') must be equal to len('confidence')" % (prefix))
+                        raise Exception(f"{prefix} len('time') must be equal to len('confidence')")
 
-            if len(startFreq_l):
-                if len(time_l):
-                    if len(time_l) != len(startFreq_l):
-                        raise Exception("%s len('time') must be equal to len('startFreq')" % (prefix))
+            if start_freq_l:
+                if time_l:
+                    if len(time_l) != len(start_freq_l):
+                        raise Exception(f"{prefix} len('time') must be equal to len('start_freq')")
 
-            if len(endFreq_l):
-                if len(time_l):
-                    if len(time_l) != len(endFreq_l):
-                        raise Exception("%s len('time') must be equal to len('endFreq')" % (prefix))
+            if end_freq_l:
+                if time_l:
+                    if len(time_l) != len(end_freq_l):
+                        raise Exception(f"{prefix} len('time') must be equal to len('end_freq')")
 
 
-            if currentTypeExtent == 'breakpointValue':
+            if current_type_extent == 'breakpoint_value':
 
-                # --- Look for the name of the corresponding breakpointTime
+                # --- Look for the name of the corresponding breakpoint_time
                 # -- in descriptiondefinition
-                timeName = ''
+                time_name = ''
                 for key in self.data['collection']['descriptiondefinition'].keys():
-                    if self.data['collection']['descriptiondefinition'][key]['typeExtent'] == 'breakpointTime':
-                        timeName = key
+                    if self.data['collection']['descriptiondefinition'][key]['type_extent'] == 'breakpoint_time':
+                        time_name = key
 
-                if len(timeName) == 0:
-                    raise Exception("%s no 'breakpointTime' has been defined in 'descriptiondefinition'" % (prefix))
+                if len(time_name) == 0:
+                    raise Exception(f"{prefix} no 'breakpoint_time' has been defined in 'descriptiondefinition'")
 
-                if timeName not in self.data['collection']['entry'][self.currentPosition].keys():
-                    raise Exception("%s no 'breakpointTime' has been given for current entry" % (prefix))
+                if time_name not in self.data['collection']['entry'][self.current_position].keys():
+                    raise Exception(f"{prefix} no 'breakpoint_time' has been given for current entry")
 
-                if len(self.data['collection']['entry'][self.currentPosition][timeName]) == 0:
-                    raise Exception("%s no 'breakpointTime' has been given in current entry" % (prefix))
+                if len(self.data['collection']['entry'][self.current_position][time_name]) == 0:
+                    raise Exception(f"{prefix} no 'breakpoint_time' has been given in current entry")
 
-                nbTime = len(self.data['collection']['entry'][self.currentPosition][timeName][0]['value'])
-                if len(value_l) != nbTime:
-                    raise Exception("%s number of columns of 'value' (%d) must be equal to number of 'time' (%d)" % (prefix, value.shape[1], nbTime))
+                time_v = self.data['collection']['entry'][self.current_position][time_name][0]['value']  # --- 2024/10/19
+                nb_time = len(time_v[0])  # --- 2024/10/19
+                if len(value_l[0]) != nb_time: # --- 2024/10/19
+                    raise Exception(f"{prefix} number of rows of 'value' {len(value_l[0])} must be equal to number of 'time' {nb_time}")
 
 
             entry = {}
 
-            if isValid:
-                if len(value_l):
-                    value_l = F_backwardCompatibility(value_l)
+            if is_valid:
+                if value_l:
+                    value_l = F_backward_compatibility(value_l)
                     entry['value'] = value_l
-                if len(time_l):
-                    time_l = F_backwardCompatibility(time_l)
+                if time_l:
+                    time_l = F_backward_compatibility(time_l)
                     entry['time'] = time_l
-                if len(duration_l):
-                    duration_l = F_backwardCompatibility(duration_l)
+                if duration_l:
+                    duration_l = F_backward_compatibility(duration_l)
                     entry['duration'] = duration_l
-                if len(confidence_l):
-                    confidence_l = F_backwardCompatibility(confidence_l)
+                if confidence_l:
+                    confidence_l = F_backward_compatibility(confidence_l)
                     entry['confidence'] = confidence_l
-                if len(startFreq_l):
-                    startFreq_l = F_backwardCompatibility(startFreq_l)
-                    entry['startFreq'] = startFreq_l
-                if len(endFreq_l):
-                    endFreq_l = F_backwardCompatibility(endFreq_l)
-                    entry['endFreq'] = endFreq_l
-                if len(comment):
+                if start_freq_l:
+                    start_freq_l = F_backward_compatibility(start_freq_l)
+                    entry['start_freq'] = start_freq_l
+                if end_freq_l:
+                    end_freq_l = F_backward_compatibility(end_freq_l)
+                    entry['end_freq'] = end_freq_l
+                if comment:
                     entry['comment'] = comment
 
-                self.data['collection']['entry'][self.currentPosition][descriptionName].append(entry)
+                self.data['collection']['entry'][self.current_position][description_name].append(entry)
 
             else:
 
-                if self.notValidAction == 'filterOut':
-                    print("%s 'value'(%s) is not part of dictionary -> filteringOut" % (prefix, value))
+                if self.not_valid_action == 'filter_out':
+                    print(f"{prefix} 'value'({value}) is not part of dictionary -> filtering-out")
                 else:
-                    raise Exception("%s 'value'(%s) is not part of the dictionary -> add it first in 'descriptiondefinition'" % (prefix, value))
+                    raise Exception(f"{prefix} 'value'({value}) is not part of the dictionary -> add it first in 'descriptiondefinition'")
                 # --- END: Check validity of the entry
 
 
@@ -383,18 +415,18 @@ class C_pyjama():
 
         key_l = self.data['collection']['descriptiondefinition'].keys()
 
-        nbEntry = len(self.data['collection']['entry'])
-        for numEntry in range(0, nbEntry):
+        nb_entry = len(self.data['collection']['entry'])
+        for num_entry in range(0, nb_entry):
             for key in key_l:
-                if key not in self.data['collection']['entry'][numEntry].keys():
-                    self.data['collection']['entry'][numEntry][key] = []
-                    self.data['collection']['entry'][numEntry][key].append({'value': ''})
-                elif len(self.data['collection']['entry'][numEntry][key]) == 0:
-                    self.data['collection']['entry'][numEntry][key] = []
-                    self.data['collection']['entry'][numEntry][key].append({'value': ''})
-                elif 'value' not in self.data['collection']['entry'][numEntry][key][0].keys():
-                    self.data['collection']['entry'][numEntry][key] = []
-                    self.data['collection']['entry'][numEntry][key].append({'value': ''})
+                if key not in self.data['collection']['entry'][num_entry].keys():
+                    self.data['collection']['entry'][num_entry][key] = []
+                    self.data['collection']['entry'][num_entry][key].append({'value': ''})
+                elif len(self.data['collection']['entry'][num_entry][key]) == 0:
+                    self.data['collection']['entry'][num_entry][key] = []
+                    self.data['collection']['entry'][num_entry][key].append({'value': ''})
+                elif 'value' not in self.data['collection']['entry'][num_entry][key][0].keys():
+                    self.data['collection']['entry'][num_entry][key] = []
+                    self.data['collection']['entry'][num_entry][key].append({'value': ''})
 
         return
 
