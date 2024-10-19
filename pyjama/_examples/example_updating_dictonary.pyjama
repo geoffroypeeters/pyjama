@@ -1,0 +1,61 @@
+{
+    "schemaversion": 1.4,
+    "collection": {
+        "descriptiondefinition": {
+            "genre": {
+                "type_content": "text",
+                "type_extent": "global",
+                "type_constraint": "value_in_dictionary",
+                "dictionary": [
+                    "blues",
+                    "hiphop",
+                    "rock"
+                ],
+                "row_name": [],
+                "is_table": true,
+                "is_editable": true,
+                "is_filter": true
+            }
+        },
+        "entry": [
+            {
+                "genre": [
+                    {
+                        "value": "blues"
+                    }
+                ]
+            },
+            {
+                "genre": [
+                    {
+                        "value": "blues"
+                    }
+                ]
+            },
+            {
+                "genre": [
+                    {
+                        "value": "hiphop"
+                    }
+                ]
+            },
+            {
+                "genre": [
+                    {
+                        "value": "rock"
+                    }
+                ]
+            },
+            {
+                "genre": [
+                    {
+                        "value": [
+                            "blues",
+                            "hiphop"
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

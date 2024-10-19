@@ -121,9 +121,11 @@ def F_check_value_in_dictionary(value_l,
                                 not_valid_action):
     """
     """
+    flatten_value_l = value_l
     if isinstance(value_l, list):
-        # --- flatten value: in case it is a list of list, it is changed to a list
-        flatten_value_l = [item for sublist in value_l for item in sublist]
+        if isinstance(value_l[0], list): # --- 2024/10/19
+            # --- flatten value: in case it is a list of list, it is changed to a list
+            flatten_value_l = [item for sublist in value_l for item in sublist]
     else:
         flatten_value_l = [value_l]
 
