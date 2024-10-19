@@ -170,7 +170,7 @@ class C_pyjama():
         """
         """
 
-        self.data['schemaversion'] = 1.41
+        self.data['schemaversion'] = '1.41'
         self.data['collection'] = {'descriptiondefinition': {}, 'entry': []}
         if not_valid_action in ['add_to_dictionary', 'filter_out', 'reject']:
             self.not_valid_action = not_valid_action
